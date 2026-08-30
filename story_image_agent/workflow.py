@@ -131,4 +131,11 @@ class ImagePromptWorkflow:
         location = str(scene.get("location", "具体室内空间"))
         action = str(scene.get("action", "人物作出关键选择"))
         mood = str(scene.get("mood", "克制而有张力"))
-        return f"竖屏短剧画面；地点：{location}；动作：{action}；氛围：{mood}。"
+        characters = str(scene.get("characters", "保持角色外观与既有设定一致"))
+        framing = str(scene.get("framing", "中近景，主体清晰，竖屏 9:16"))
+        lighting = str(scene.get("lighting", "符合场景时间的自然光"))
+        continuity = str(scene.get("continuity", "服装、发型、道具位置与上一镜头连续"))
+        negative = str(scene.get("negative", "无文字水印、无畸形手指、无多余人物、无闪烁"))
+        return (f"竖屏短剧画面；地点：{location}；人物：{characters}；动作：{action}；"
+                f"构图：{framing}；光线：{lighting}；氛围：{mood}；连续性：{continuity}；"
+                f"负面约束：{negative}。")

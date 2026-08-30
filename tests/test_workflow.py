@@ -34,6 +34,14 @@ class ImageWorkflowTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             workflow.build_generation_request("missing")
 
+    def test_prompt_carries_identity_composition_continuity_and_negative_constraints(self):
+        prompt = ImagePromptWorkflow("image-project-1").create_prompt(
+            {"characters": "林夏，红色风衣", "framing": "低机位全景", "continuity": "钥匙在右手",
+             "negative": "无文字，无多余手指"}, ["scene:1"]
+        ).prompt
+        for expected in ("林夏，红色风衣", "低机位全景", "钥匙在右手", "无文字，无多余手指"):
+            self.assertIn(expected, prompt)
+
     def test_repository_receives_revision_before_request_and_failure_is_not_hidden(self):
         class RecordingRepository:
             def __init__(self):
