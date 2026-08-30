@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from .capability import MediaProjectRepository
+from .quality import assess_image_quality
 
 
 @dataclass(frozen=True)
@@ -88,12 +89,13 @@ class ImagePromptWorkflow:
         candidates = {item["request_id"] for item in plan.get("candidates", [])}
         if candidate_request_id not in candidates:
             raise KeyError("candidate request is not part of this plan")
-        if not bool(evaluation.get("passed", False)):
+        gate = assess_image_quality(evaluation.get("metrics", evaluation))
+        if not gate["passed"]:
             raise ValueError("image quality gate did not pass")
         revision_id = plan.get("prompt_revision_id")
         revision = self._find(revision_id)
         final = self.build_generation_request(revision.revision_id)
-        plan["evaluation"] = dict(evaluation)
+        plan["evaluation"] = {**gate, "review": dict(evaluation)}
         plan["final_request"] = final
         return dict(final)
 

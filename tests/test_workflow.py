@@ -68,7 +68,8 @@ class ImageWorkflowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             workflow.finalize_candidate(plan, plan["candidates"][0]["request_id"], {"passed": False})
         final = workflow.finalize_candidate(
-            plan, plan["candidates"][1]["request_id"], {"passed": True, "score": 0.91}
+            plan, plan["candidates"][1]["request_id"], {"story_alignment": .9,
+            "composition": .9, "identity_consistency": .9, "artifact_free": .9}
         )
         self.assertEqual(final["prompt_revision_id"], plan["prompt_revision_id"])
         self.assertEqual(len(workflow.requests), 4)
