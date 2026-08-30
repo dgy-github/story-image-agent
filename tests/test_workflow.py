@@ -57,3 +57,18 @@ class ImageWorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "durable store unavailable"):
             workflow.build_generation_request(revision.revision_id)
         self.assertEqual(len(workflow.requests), 1)
+
+    def test_production_plan_requires_quality_before_final_generation(self):
+        workflow = ImagePromptWorkflow("image-project-1")
+        plan = workflow.build_production_plan(
+            {"location": "天台", "action": "女主回头", "mood": "紧张"}, ["scene:2"], 3
+        )
+        self.assertEqual(len(plan["candidates"]), 3)
+        self.assertIsNone(plan["final_request"])
+        with self.assertRaises(ValueError):
+            workflow.finalize_candidate(plan, plan["candidates"][0]["request_id"], {"passed": False})
+        final = workflow.finalize_candidate(
+            plan, plan["candidates"][1]["request_id"], {"passed": True, "score": 0.91}
+        )
+        self.assertEqual(final["prompt_revision_id"], plan["prompt_revision_id"])
+        self.assertEqual(len(workflow.requests), 4)

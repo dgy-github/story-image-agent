@@ -67,6 +67,36 @@ class ImagePromptWorkflow:
                 raise
         return dict(request)
 
+    def build_production_plan(self, scene: dict[str, Any], source_spans: list[str],
+                              candidate_count: int = 3) -> dict[str, Any]:
+        """Create a storyboard prompt, candidate batch, evaluation gate and final request."""
+        if candidate_count < 1 or candidate_count > 8:
+            raise ValueError("candidate_count must be between 1 and 8")
+        revision = self.create_prompt(scene, source_spans)
+        candidates = [self.build_generation_request(revision.revision_id)
+                      for _ in range(candidate_count)]
+        return {"schema": "image-production-plan/v1", "project_id": self.project_id,
+                "prompt_revision_id": revision.revision_id, "candidates": candidates,
+                "evaluation": {"stage": "quality_assessment", "required": True,
+                                "criteria": ["story_alignment", "composition", "identity_consistency",
+                                              "artifact_free"]},
+                "final_request": None}
+
+    def finalize_candidate(self, plan: dict[str, Any], candidate_request_id: str,
+                           evaluation: dict[str, Any]) -> dict[str, Any]:
+        """Accept a candidate only when the evaluation gate passes, then create a new revision."""
+        candidates = {item["request_id"] for item in plan.get("candidates", [])}
+        if candidate_request_id not in candidates:
+            raise KeyError("candidate request is not part of this plan")
+        if not bool(evaluation.get("passed", False)):
+            raise ValueError("image quality gate did not pass")
+        revision_id = plan.get("prompt_revision_id")
+        revision = self._find(revision_id)
+        final = self.build_generation_request(revision.revision_id)
+        plan["evaluation"] = dict(evaluation)
+        plan["final_request"] = final
+        return dict(final)
+
     def _append(self, prompt: str, spans: list[str], parent: str | None) -> PromptRevision:
         if not spans or any(not span.strip() for span in spans):
             raise ValueError("source_spans must contain at least one non-blank span")
