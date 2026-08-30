@@ -24,7 +24,7 @@ class ImageWorkflowTests(unittest.TestCase):
         self.assertEqual(second.parent_revision_id, first.revision_id)
         self.assertEqual(old_request["prompt_revision_id"], first.revision_id)
         self.assertEqual(new_request["prompt_revision_id"], second.revision_id)
-        schema_path = Path(__file__).parents[3] / "contracts/media-agent/image-generation-request-v1.json"
+        schema_path = Path(__file__).parents[1] / "contracts/media-agent/image-generation-request-v1.json"
         jsonschema.Draft202012Validator(json.loads(schema_path.read_text(encoding="utf-8"))).validate(new_request)
 
     def test_invalid_revision_and_source_fail_closed(self):
