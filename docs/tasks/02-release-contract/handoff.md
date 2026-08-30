@@ -8,5 +8,6 @@
 兼容性、安全边界和 CI 已补齐。
 
 验证：`python -m unittest discover -s tests -p "test_*.py"` 通过（7 tests），工作树已清除
-`*.egg-info`。未决：尚未提交或推送，因此无提交号、仓库 URL 和 CI 运行 URL；GitHub Actions
-需在后续推送后获得远端运行结果。
+`*.egg-info`。提交：`eb16316`。仓库：https://github.com/dgy-github/story-image-agent。
+GitHub Actions：https://github.com/dgy-github/story-image-agent/actions/runs/33320901788（success）。
+未决：无。
