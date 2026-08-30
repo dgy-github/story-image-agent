@@ -31,7 +31,7 @@ Python 3.11 及以上受支持。
 
 ## 离线功能测试
 
-`MockImageProvider` 是内置的确定性 provider 替身：根据请求生成 Base64 编码的 SVG，费用为
+`MockImageProvider` 是内置的确定性 provider 替身：根据请求生成 Base64 编码的最小 PNG，费用为
 0，结果符合 `media-gateway-response/v1`。它不访问网络、不读取文件、不需要凭据，适合 CI
 和本地全链路测试；生产环境仍应由 Rust capability 接入真实 provider。
 

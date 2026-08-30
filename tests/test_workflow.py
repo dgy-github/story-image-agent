@@ -21,7 +21,7 @@ class ImageWorkflowTests(unittest.TestCase):
         self.assertEqual(response["provider"], "mock")
         self.assertEqual(response["cost_cny_fen"], 0)
         self.assertTrue(response["content_base64"])
-        self.assertTrue(base64.b64decode(response["content_base64"]).startswith(b"<svg"))
+        self.assertTrue(base64.b64decode(response["content_base64"]).startswith(b"\x89PNG"))
         schema_path = Path(__file__).parents[1] / "contracts/media-agent/media-gateway-v1.json"
         jsonschema.Draft202012Validator(
             json.loads(schema_path.read_text(encoding="utf-8"))
