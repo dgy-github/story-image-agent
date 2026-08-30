@@ -72,3 +72,7 @@ class ImageWorkflowTests(unittest.TestCase):
         )
         self.assertEqual(final["prompt_revision_id"], plan["prompt_revision_id"])
         self.assertEqual(len(workflow.requests), 4)
+        schema_path = Path(__file__).parents[1] / "contracts/media-agent/image-production-plan-v1.json"
+        jsonschema.Draft202012Validator(
+            json.loads(schema_path.read_text(encoding="utf-8"))
+        ).validate(plan)
