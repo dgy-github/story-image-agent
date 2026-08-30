@@ -29,6 +29,12 @@ Python 包只接收已固定场景数据和 `source_spans`，输出
 主版本：新增可选字段保持 v1，删除字段、改变字段含义或收紧已有输入需要发布 v2。
 Python 3.11 及以上受支持。
 
+## 离线功能测试
+
+`MockImageProvider` 是内置的确定性 provider 替身：根据请求生成 Base64 编码的 SVG，费用为
+0，结果符合 `media-gateway-response/v1`。它不访问网络、不读取文件、不需要凭据，适合 CI
+和本地全链路测试；生产环境仍应由 Rust capability 接入真实 provider。
+
 ## 安全与 Provider 边界
 
 本包不执行图片 provider 请求，不持有 API key、计费数据或图片 artifact，也不提供 shell

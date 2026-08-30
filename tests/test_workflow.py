@@ -1,4 +1,5 @@
 import json
+import base64
 import sys
 import unittest
 from pathlib import Path
@@ -7,11 +8,32 @@ import jsonschema
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from story_image_agent import ImagePromptWorkflow
+from story_image_agent import ImagePromptWorkflow, MockImageProvider
 from story_image_agent.quality import assess_image_quality
 
 
 class ImageWorkflowTests(unittest.TestCase):
+    def test_mock_provider_returns_gateway_contract_without_network(self):
+        workflow = ImagePromptWorkflow("image-project-1")
+        revision = workflow.create_prompt({"location": "厨房"}, ["scene:1"])
+        request = workflow.build_generation_request(revision.revision_id)
+        response = MockImageProvider().generate(request)
+        self.assertEqual(response["provider"], "mock")
+        self.assertEqual(response["cost_cny_fen"], 0)
+        self.assertTrue(response["content_base64"])
+        self.assertTrue(base64.b64decode(response["content_base64"]).startswith(b"<svg"))
+        schema_path = Path(__file__).parents[1] / "contracts/media-agent/media-gateway-v1.json"
+        jsonschema.Draft202012Validator(
+            json.loads(schema_path.read_text(encoding="utf-8"))
+        ).validate(response)
+
+    def test_mock_provider_is_deterministic_and_rejects_incomplete_request(self):
+        provider = MockImageProvider()
+        request = {"request_id": "r1", "project_id": "p1", "prompt": "same"}
+        self.assertEqual(provider.generate(request), provider.generate(request))
+        with self.assertRaises(ValueError):
+            provider.generate({"request_id": "r1"})
+
     def test_quality_evaluation_versions_failure_evidence_and_retry_stage(self):
         result = assess_image_quality({"story_alignment": 0.4})
         self.assertEqual(result["schema"], "image-quality-evaluation/v1")
