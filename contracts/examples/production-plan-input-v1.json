@@ -1,0 +1,11 @@
+{
+  "project_id": "image-project-1",
+  "scene": {
+    "location": "天台",
+    "characters": "林夏，红色风衣",
+    "action": "回头看向门口",
+    "mood": "紧张"
+  },
+  "source_spans": ["scene:ep-1:sc-2"],
+  "candidate_count": 2
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "image-quality-evaluation/v1",
+  "passed": false,
+  "metrics": {
+    "story_alignment": 0.9,
+    "composition": 0.9,
+    "identity_consistency": 0.5,
+    "artifact_free": 0.9
+  },
+  "failures": [
+    {
+      "metric": "identity_consistency",
+      "reason": "below_threshold",
+      "threshold": 0.85,
+      "actual": 0.5
+    }
+  ],
+  "retry_stage": "prompt_revision"
+}

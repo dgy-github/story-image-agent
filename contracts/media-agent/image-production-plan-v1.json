@@ -9,8 +9,62 @@
     "schema": {"const": "image-production-plan/v1"},
     "project_id": {"type": "string", "minLength": 1},
     "prompt_revision_id": {"type": "string", "minLength": 1},
-    "candidates": {"type": "array", "minItems": 1, "maxItems": 8},
-    "evaluation": {"type": "object"},
-    "final_request": {"type": ["object", "null"]}
+    "candidates": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {"type": "object"}
+    },
+    "evaluation": {
+      "type": "object",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["stage", "required", "criteria"],
+          "properties": {
+            "stage": {"const": "quality_assessment"},
+            "required": {"const": true},
+            "criteria": {
+              "type": "array", "minItems": 4, "maxItems": 4,
+              "items": {"enum": ["story_alignment", "composition", "identity_consistency", "artifact_free"]}
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["schema", "passed", "metrics", "failures", "retry_stage", "review"],
+          "properties": {
+            "schema": {"const": "image-quality-evaluation/v1"},
+            "passed": {"type": "boolean"},
+            "metrics": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "story_alignment": {"type": "number", "minimum": 0, "maximum": 1},
+                "composition": {"type": "number", "minimum": 0, "maximum": 1},
+                "identity_consistency": {"type": "number", "minimum": 0, "maximum": 1},
+                "artifact_free": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            },
+            "failures": {
+              "type": "array",
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["metric", "reason", "threshold"],
+                "properties": {
+                  "metric": {"enum": ["story_alignment", "composition", "identity_consistency", "artifact_free"]},
+                  "reason": {"enum": ["missing_or_invalid", "below_threshold"]},
+                  "threshold": {"type": "number", "minimum": 0, "maximum": 1},
+                  "actual": {"type": "number", "minimum": 0, "maximum": 1}
+                }
+              }
+            },
+            "retry_stage": {"enum": ["prompt_revision", "candidate_generation", null]},
+            "review": {"type": "object"}
+          }
+        }
+      ]
+    },
+    "final_request": {
+      "oneOf": [{"type": "object"}, {"type": "null"}]
+    }
   }
 }

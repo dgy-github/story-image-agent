@@ -8,6 +8,7 @@ IMAGE_THRESHOLDS = {
     "identity_consistency": 0.85,
     "artifact_free": 0.85,
 }
+QUALITY_EVALUATION_VERSION = "image-quality-evaluation/v1"
 
 
 def assess_image_quality(metrics: dict[str, Any] | None) -> dict[str, Any]:
@@ -27,5 +28,6 @@ def assess_image_quality(metrics: dict[str, Any] | None) -> dict[str, Any]:
     if failures:
         names = {failure["metric"] for failure in failures}
         retry_stage = "prompt_revision" if "identity_consistency" in names else "candidate_generation"
-    return {"passed": not failures, "metrics": normalized, "failures": failures,
+    return {"schema": QUALITY_EVALUATION_VERSION, "passed": not failures,
+            "metrics": normalized, "failures": failures,
             "retry_stage": retry_stage}

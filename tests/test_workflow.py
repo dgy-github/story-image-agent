@@ -8,9 +8,18 @@ import jsonschema
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from story_image_agent import ImagePromptWorkflow
+from story_image_agent.quality import assess_image_quality
 
 
 class ImageWorkflowTests(unittest.TestCase):
+    def test_quality_evaluation_versions_failure_evidence_and_retry_stage(self):
+        result = assess_image_quality({"story_alignment": 0.4})
+        self.assertEqual(result["schema"], "image-quality-evaluation/v1")
+        self.assertEqual(result["retry_stage"], "prompt_revision")
+        failures = {item["metric"]: item for item in result["failures"]}
+        self.assertEqual(failures["story_alignment"]["actual"], 0.4)
+        self.assertEqual(failures["composition"]["reason"], "missing_or_invalid")
+
     def test_revision_and_regeneration_are_append_only(self):
         workflow = ImagePromptWorkflow("image-project-1")
         first = workflow.create_prompt({"location": "厨房", "action": "递出钥匙"}, ["scene:ep-1:sc-2"])
@@ -97,3 +106,4 @@ class ImageWorkflowTests(unittest.TestCase):
             )
         self.assertEqual(plan["evaluation"]["retry_stage"], "prompt_revision")
         self.assertFalse(plan["evaluation"]["passed"])
+        self.assertEqual(plan["evaluation"]["schema"], "image-quality-evaluation/v1")

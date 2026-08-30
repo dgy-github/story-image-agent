@@ -2,6 +2,10 @@
 name = "microcodex-story-image-agent"
 version = "0.1.0a1"
 requires-python = ">=3.11"
+description = "Provider-neutral, append-only story image prompt workflow"
+readme = "README.md"
+license = {text = "MIT"}
+keywords = ["story", "image", "workflow", "audit"]
 
 [project.optional-dependencies]
 test = ["jsonschema==4.26.0"]

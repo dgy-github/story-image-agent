@@ -13,3 +13,24 @@ provider 返回的图片；真实 provider 必须由 Rust 的 typed capability �
 ```powershell
 python -m unittest discover -s tests -p "test_*.py"
 ```
+
+## 输入输出契约
+
+Python 包只接收已固定场景数据和 `source_spans`，输出
+`image-production-plan/v1`。计划包含候选生成请求、版本化质量评估结果以及最终请求；
+示例见 `contracts/examples/`。所有 JSON Schema 位于 `contracts/media-agent/`。
+
+质量评估使用 `image-quality-evaluation/v1`。四项分数都必须在 0 到 1 之间并达到阈值；
+失败结果保留具体指标、原因、阈值、实际值（若有效）及确定性的返工阶段。
+
+## 兼容性与版本策略
+
+包版本遵循 SemVer；当前 `0.1.0a1` 是不稳定预发布。契约名称内的 `/v1` 是独立的
+主版本：新增可选字段保持 v1，删除字段、改变字段含义或收紧已有输入需要发布 v2。
+Python 3.11 及以上受支持。
+
+## 安全与 Provider 边界
+
+本包不执行图片 provider 请求，不持有 API key、计费数据或图片 artifact，也不提供 shell
+和本地路径能力。真实 provider、凭据、费用与 artifact 由主项目 Rust typed capability 管理；
+Python 侧仅生成可审计计划。仓库和示例不得包含 secret 或受保护素材。
