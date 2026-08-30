@@ -6,5 +6,8 @@ requires-python = ">=3.11"
 [project.optional-dependencies]
 test = ["jsonschema==4.26.0"]
 
+[tool.setuptools.packages.find]
+include = ["story_image_agent*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
