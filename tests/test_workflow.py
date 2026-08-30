@@ -85,3 +85,15 @@ class ImageWorkflowTests(unittest.TestCase):
         jsonschema.Draft202012Validator(
             json.loads(schema_path.read_text(encoding="utf-8"))
         ).validate(plan)
+
+    def test_failed_quality_gate_records_deterministic_retry_stage(self):
+        workflow = ImagePromptWorkflow("image-project-1")
+        plan = workflow.build_production_plan({"location": "天台"}, ["scene:2"], 2)
+        with self.assertRaises(ValueError):
+            workflow.finalize_candidate(
+                plan, plan["candidates"][0]["request_id"],
+                {"story_alignment": .9, "composition": .9,
+                 "identity_consistency": .5, "artifact_free": .9},
+            )
+        self.assertEqual(plan["evaluation"]["retry_stage"], "prompt_revision")
+        self.assertFalse(plan["evaluation"]["passed"])

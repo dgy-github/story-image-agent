@@ -91,6 +91,7 @@ class ImagePromptWorkflow:
             raise KeyError("candidate request is not part of this plan")
         gate = assess_image_quality(evaluation.get("metrics", evaluation))
         if not gate["passed"]:
+            plan["evaluation"] = {**gate, "review": dict(evaluation)}
             raise ValueError("image quality gate did not pass")
         revision_id = plan.get("prompt_revision_id")
         revision = self._find(revision_id)

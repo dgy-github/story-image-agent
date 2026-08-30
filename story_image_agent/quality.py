@@ -23,5 +23,9 @@ def assess_image_quality(metrics: dict[str, Any] | None) -> dict[str, Any]:
         if value < threshold:
             failures.append({"metric": name, "reason": "below_threshold", "threshold": threshold,
                              "actual": float(value)})
+    retry_stage = None
+    if failures:
+        names = {failure["metric"] for failure in failures}
+        retry_stage = "prompt_revision" if "identity_consistency" in names else "candidate_generation"
     return {"passed": not failures, "metrics": normalized, "failures": failures,
-            "retry_stage": None if not failures else "candidate_generation"}
+            "retry_stage": retry_stage}
