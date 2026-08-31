@@ -30,7 +30,8 @@ class ImageWorkflowTests(unittest.TestCase):
             def __exit__(self, *_): return None
             def read(self): return self.body
 
-        responses = [Response(json.dumps({"output": {"results": [{"url": "https://image.test/a.png"}]}}).encode()),
+        responses = [Response(json.dumps({"output": {"task_id": "task-1"}}).encode()),
+                     Response(json.dumps({"output": {"task_status": "SUCCEEDED", "results": [{"url": "https://image.test/a.png"}]}}).encode()),
                      Response(b"png-data")]
         provider = DashScopeImageProvider("configured-key", model="wan-test")
         with patch("story_image_agent.provider.urlopen", side_effect=responses):

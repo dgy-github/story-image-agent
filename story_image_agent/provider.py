@@ -56,11 +56,20 @@ class DashScopeImageProvider:
             raise ValueError("request missing prompt")
         body = json.dumps({"model": self.model, "input": {"prompt": request["prompt"]},
                            "parameters": {"n": 1}}, ensure_ascii=False).encode()
-        req = Request(self.base_url + "/services/aigc/text2image/image-synthesis", body,
-                      headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"})
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json",
+                   "X-DashScope-Async": "enable"}
+        req = Request(self.base_url + "/services/aigc/text2image/image-synthesis", body, headers=headers)
         with urlopen(req, timeout=self.timeout) as response:
             payload = json.loads(response.read())
-        output = payload.get("output", {})
+        task_id = payload.get("output", {}).get("task_id")
+        if not task_id:
+            raise RuntimeError("DashScope image response did not contain task_id")
+        with urlopen(Request(self.base_url + "/tasks/" + task_id,
+                             headers={"Authorization": f"Bearer {self.api_key}"}), timeout=self.timeout) as response:
+            result = json.loads(response.read())
+        output = result.get("output", {})
+        if output.get("task_status") != "SUCCEEDED":
+            raise RuntimeError(f"DashScope image task not succeeded: {output.get('task_status', 'UNKNOWN')}")
         url = output.get("results", [{}])[0].get("url")
         if not url:
             raise RuntimeError("DashScope image response did not contain an image URL")
