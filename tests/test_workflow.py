@@ -2,17 +2,43 @@ import json
 import base64
 import sys
 import unittest
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import jsonschema
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from story_image_agent import ImagePromptWorkflow, MockImageProvider
+from story_image_agent import DashScopeImageProvider, ImagePromptWorkflow, MockImageProvider
 from story_image_agent.quality import assess_image_quality
 
 
 class ImageWorkflowTests(unittest.TestCase):
+    def test_dashscope_provider_reuses_nanocodex_image_configuration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "config.toml"
+            config.write_text('vl_api_key = "configured-key"\nimage_model = "wan-test"\n', encoding="utf-8")
+            provider = DashScopeImageProvider.from_nanocodex_config(config)
+        self.assertEqual(provider.model, "wan-test")
+        self.assertEqual(provider.api_key, "configured-key")
+
+    def test_dashscope_provider_maps_async_result_to_gateway_contract(self):
+        class Response:
+            def __init__(self, body): self.body = body
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def read(self): return self.body
+
+        responses = [Response(json.dumps({"output": {"results": [{"url": "https://image.test/a.png"}]}}).encode()),
+                     Response(b"png-data")]
+        provider = DashScopeImageProvider("configured-key", model="wan-test")
+        with patch("story_image_agent.provider.urlopen", side_effect=responses):
+            result = provider.generate({"prompt": "一只猫"})
+        self.assertEqual(result["provider"], "dashscope")
+        self.assertEqual(result["model"], "wan-test")
+        self.assertEqual(base64.b64decode(result["content_base64"]), b"png-data")
+
     def test_mock_provider_returns_gateway_contract_without_network(self):
         workflow = ImagePromptWorkflow("image-project-1")
         revision = workflow.create_prompt({"location": "厨房"}, ["scene:1"])

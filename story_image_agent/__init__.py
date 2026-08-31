@@ -2,7 +2,7 @@
 
 from .capability import MediaProjectRepository, RustMediaProjectClient
 from .workflow import ImagePromptWorkflow, PromptRevision
-from .provider import ImageProvider, MockImageProvider
+from .provider import DashScopeImageProvider, ImageProvider, MockImageProvider
 
 __all__ = [
     "ImagePromptWorkflow",
@@ -11,4 +11,5 @@ __all__ = [
     "RustMediaProjectClient",
     "ImageProvider",
     "MockImageProvider",
+    "DashScopeImageProvider",
 ]
