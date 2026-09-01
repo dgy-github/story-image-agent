@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import tomllib
+import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 from typing import Any, Protocol
@@ -16,7 +17,7 @@ class ImageProvider(Protocol):
 
 
 class MockImageProvider:
-    """Produces a deterministic SVG artifact without network, credentials, or file I/O."""
+    """Produces a deterministic PNG artifact without network, credentials, or file I/O."""
 
     def generate(self, request: dict[str, Any]) -> dict[str, Any]:
         for key in ("request_id", "project_id", "prompt"):
@@ -35,11 +36,12 @@ class DashScopeImageProvider:
     """Explicit Alibaba Model Studio image provider using BugleCat's config."""
 
     def __init__(self, api_key: str, *, base_url: str = "https://dashscope.aliyuncs.com/api/v1",
-                 model: str = "wan2.2-t2i-flash", timeout_seconds: float = 120) -> None:
-        if not api_key.strip() or timeout_seconds <= 0:
+                 model: str = "wan2.2-t2i-flash", timeout_seconds: float = 120,
+                 max_polls: int = 30, poll_interval_seconds: float = 2) -> None:
+        if not api_key.strip() or timeout_seconds <= 0 or max_polls < 1 or poll_interval_seconds < 0:
             raise ValueError("DashScope image provider configuration is invalid")
         self.api_key, self.base_url, self.model = api_key, base_url.rstrip("/"), model
-        self.timeout = timeout_seconds
+        self.timeout, self.max_polls, self.poll_interval = timeout_seconds, max_polls, poll_interval_seconds
 
     @classmethod
     def from_nanocodex_config(cls, path: Path | None = None) -> "DashScopeImageProvider":
@@ -64,17 +66,30 @@ class DashScopeImageProvider:
         task_id = payload.get("output", {}).get("task_id")
         if not task_id:
             raise RuntimeError("DashScope image response did not contain task_id")
-        with urlopen(Request(self.base_url + "/tasks/" + task_id,
-                             headers={"Authorization": f"Bearer {self.api_key}"}), timeout=self.timeout) as response:
-            result = json.loads(response.read())
-        output = result.get("output", {})
-        if output.get("task_status") != "SUCCEEDED":
-            raise RuntimeError(f"DashScope image task not succeeded: {output.get('task_status', 'UNKNOWN')}")
+        output: dict[str, Any] = {}
+        for attempt in range(self.max_polls):
+            with urlopen(Request(self.base_url + "/tasks/" + task_id,
+                                 headers={"Authorization": f"Bearer {self.api_key}"}), timeout=self.timeout) as response:
+                result = json.loads(response.read())
+            output = result.get("output", {})
+            status = output.get("task_status", "UNKNOWN")
+            if status == "SUCCEEDED":
+                break
+            if status in {"FAILED", "CANCELED", "UNKNOWN"}:
+                raise RuntimeError(f"DashScope image task not succeeded: {status}")
+            if attempt + 1 < self.max_polls:
+                time.sleep(self.poll_interval)
+        else:
+            raise TimeoutError(f"DashScope image task timed out after {self.max_polls} polls")
         url = output.get("results", [{}])[0].get("url")
         if not url:
             raise RuntimeError("DashScope image response did not contain an image URL")
         with urlopen(Request(url), timeout=self.timeout) as image:
-            encoded = base64.b64encode(image.read()).decode("ascii")
-        return {"schema": "media-gateway-response/v1", "mime_type": "image/png",
+            mime_type = image.headers.get_content_type()
+            content = image.read()
+        if mime_type not in {"image/png", "image/jpeg", "image/webp"}:
+            raise RuntimeError(f"DashScope image response has unsupported MIME type: {mime_type}")
+        encoded = base64.b64encode(content).decode("ascii")
+        return {"schema": "media-gateway-response/v1", "mime_type": mime_type,
                 "content_base64": encoded, "provider": "dashscope", "model": self.model,
                 "cost_cny_fen": 0, "pricing_catalog_id": "dashscope-runtime"}

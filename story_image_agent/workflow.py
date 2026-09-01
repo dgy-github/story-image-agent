@@ -19,7 +19,7 @@ class PromptRevision:
 
 
 class ImagePromptWorkflow:
-    """Build and revise prompts; provider execution remains a Rust capability."""
+    """Build and revise prompts; provider execution is an explicit separate step."""
 
     def __init__(
         self, project_id: str, repository: MediaProjectRepository | None = None

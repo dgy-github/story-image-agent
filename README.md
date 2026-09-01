@@ -1,7 +1,8 @@
 # Story Image Agent
 
-独立的故事后续生图项目空间。当前 MVP 只生成可审计的图片生成请求，不伪造
-provider 返回的图片；真实 provider 必须由 Rust 的 typed capability 提供。
+独立的故事后续生图项目空间。默认工作流只生成可审计的图片生成请求，不伪造
+provider 返回的图片；需要真实产物时可显式使用 DashScope Provider，生产集成仍推荐通过 Rust
+typed capability 管理凭据、费用与 artifact。
 
 核心保证：每次提示词修改创建新的 revision；每次生成创建新的 request，旧提示词和
 旧图片引用永不覆盖。输入只允许来自已固定的 story package 场景/角色 span。
@@ -33,10 +34,18 @@ Python 3.11 及以上受支持。
 
 `MockImageProvider` 是内置的确定性 provider 替身：根据请求生成 Base64 编码的最小 PNG，费用为
 0，结果符合 `media-gateway-response/v1`。它不访问网络、不读取文件、不需要凭据，适合 CI
-和本地全链路测试；生产环境仍应由 Rust capability 接入真实 provider。
+和本地全链路测试。
+
+## DashScope 生图
+
+`DashScopeImageProvider` 可显式调用阿里百炼的 `wan2.2-t2i-flash`。它依次读取
+`DASHSCOPE_WORKSPACE_KEY`、`DASHSCOPE_API_KEY`、`~/.nanocodex/config.toml` 中的
+`dashscope_workspace_key` 和 `vl_api_key`，不会记录或输出密钥。调用采用异步任务协议：
+提交、轮询任务状态、下载产物；仅接受 PNG、JPEG、WebP 响应。CI 始终使用 Mock，不会发生
+外部调用或费用。
 
 ## 安全与 Provider 边界
 
-本包不执行图片 provider 请求，不持有 API key、计费数据或图片 artifact，也不提供 shell
-和本地路径能力。真实 provider、凭据、费用与 artifact 由主项目 Rust typed capability 管理；
-Python 侧仅生成可审计计划。仓库和示例不得包含 secret 或受保护素材。
+默认工作流不会调用图片 provider，也不提供 shell 或本地路径能力。真实 Provider 只能显式
+调用；凭据仅从环境变量或本地配置读取，不写入仓库、日志、请求结果或示例。生产环境仍推荐由
+主项目 Rust typed capability 管理凭据、费用与 artifact。仓库和示例不得包含 secret 或受保护素材。

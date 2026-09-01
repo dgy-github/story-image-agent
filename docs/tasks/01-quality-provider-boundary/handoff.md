@@ -7,5 +7,8 @@
 状态：`completed`（2026-08-30）。质量评估契约为 `image-quality-evaluation/v1`；指标与阈值
 依据记录在 `story_image_agent/quality.py`，失败证据与返工阶段已由测试覆盖。
 
-验证：`python -m unittest discover -s tests -p "test_*.py"` 通过（7 tests）。提交：`eb16316`；
-未加入 provider 网络、shell、密钥或本地路径能力。未决：无。
+验证：`python -m unittest discover -s tests -p "test_*.py"` 通过（12 tests）。提交：`eb16316`。
+
+后续更新（2026-09-01）：已新增显式 `DashScopeImageProvider`，用于复用 BugleCat 的阿里
+百炼配置；采用异步提交、轮询和下载流程。Mock 保持为 CI 默认 Provider。未决：真实 API 的
+带费用 smoke 尚未执行；真实 Provider 的费用元数据仍为运行时占位值。

@@ -3,6 +3,7 @@ import base64
 import sys
 import unittest
 import tempfile
+from email.message import Message
 from pathlib import Path
 from unittest.mock import patch
 
@@ -25,20 +26,40 @@ class ImageWorkflowTests(unittest.TestCase):
 
     def test_dashscope_provider_maps_async_result_to_gateway_contract(self):
         class Response:
-            def __init__(self, body): self.body = body
+            def __init__(self, body, mime_type="application/json"):
+                self.body = body
+                self.headers = Message()
+                self.headers["Content-Type"] = mime_type
             def __enter__(self): return self
             def __exit__(self, *_): return None
             def read(self): return self.body
 
         responses = [Response(json.dumps({"output": {"task_id": "task-1"}}).encode()),
+                     Response(json.dumps({"output": {"task_status": "RUNNING"}}).encode()),
                      Response(json.dumps({"output": {"task_status": "SUCCEEDED", "results": [{"url": "https://image.test/a.png"}]}}).encode()),
-                     Response(b"png-data")]
-        provider = DashScopeImageProvider("configured-key", model="wan-test")
+                     Response(b"png-data", "image/webp")]
+        provider = DashScopeImageProvider("configured-key", model="wan-test", poll_interval_seconds=0)
         with patch("story_image_agent.provider.urlopen", side_effect=responses):
             result = provider.generate({"prompt": "一只猫"})
         self.assertEqual(result["provider"], "dashscope")
         self.assertEqual(result["model"], "wan-test")
+        self.assertEqual(result["mime_type"], "image/webp")
         self.assertEqual(base64.b64decode(result["content_base64"]), b"png-data")
+
+    def test_dashscope_provider_rejects_terminal_failure(self):
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *_): return None
+            def read(self): return json.dumps({"output": {"task_status": "FAILED"}}).encode()
+
+        provider = DashScopeImageProvider("configured-key", poll_interval_seconds=0)
+        with patch("story_image_agent.provider.urlopen", side_effect=[
+            type("Submit", (), {"__enter__": lambda self: self, "__exit__": lambda self, *_: None,
+                                  "read": lambda self: json.dumps({"output": {"task_id": "task-1"}}).encode()})(),
+            Response(),
+        ]):
+            with self.assertRaisesRegex(RuntimeError, "FAILED"):
+                provider.generate({"prompt": "一只猫"})
 
     def test_mock_provider_returns_gateway_contract_without_network(self):
         workflow = ImagePromptWorkflow("image-project-1")
